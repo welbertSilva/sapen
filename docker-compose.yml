@@ -1,0 +1,82 @@
+####
+# ATTENTION:
+# Replace all occurrences of sapen with your project's name.
+####
+
+# v3 syntax
+version: '3'
+
+# Named volumes
+volumes:
+  # Postgres Data
+  sapen-postgres-data:
+    driver: local
+
+  # MySQL Data
+  sapen-mysql-data:
+    driver: local
+
+  # Redis Data
+  sapen-redis-data:
+    driver: local
+
+services:
+  # Postgres (11)
+  postgres:
+    image: postgres:latest
+    container_name: sapen-postgres
+    volumes:
+      - sapen-postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=sapen
+      - POSTGRES_PASSWORD=Abcd12345
+      - POSTGRES_USER=postgres
+
+# MySQL (5.7)
+  mysql:
+    image: mysql:5.7
+    container_name: sapen-mysql
+    volumes:
+      - sapen-mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=sapen
+      - MYSQL_ROOT_PASSWORD=Abcd12345
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=Abcd12345
+
+  # Redis
+  cache:
+    image: redis:latest
+    container_name: sapen-redis
+    command: --appendonly yes
+    volumes:
+      - sapen-redis-data:/data
+    ports:
+      - "6379:6379"
+
+  # PHP (with Nginx)
+  app:
+    image: ambientum/php:latest-nginx
+    container_name: sapen-app
+    volumes:
+      - .:/var/www/app
+    ports:
+      - "80:8080"
+    links:
+      - postgres
+      - cache
+
+  # Laravel Queues
+  queue:
+    image: ambientum/php:latest-nginx
+    container_name: sapen-queue
+    command: php artisan queue:listen
+    volumes:
+      - .:/var/www/app
+    links:
+      - postgres
+      - cache
